@@ -1,0 +1,63 @@
+#include <SPI.h>
+#include <DMD.h>
+#include <TimerOne.h>
+#define DISPLAYS_ACROSS 3
+#define DISPLAYS_DOWN 1
+byte count = 0;
+DMD dmd(DISPLAYS_ACROSS, DISPLAYS_DOWN);
+int column, row, i, j;
+void ScanDMD()
+{
+  dmd.scanDisplayBySPI();
+}
+byte serial_getch() {
+  while (Serial.available() == 0);
+  return Serial.read();
+}
+void setup(void)
+{
+  Serial.begin(19200);
+  Timer1.initialize( 5100 );
+  Timer1.pwm(PIN_DMD_nOE, 10); // to setup PWM and the starting brightness
+  Timer1.attachInterrupt( ScanDMD );
+  dmd.clearScreen( true );
+}
+void loop(void)
+{
+  byte rxbyte = serial_getch();
+  if (rxbyte == 'j')
+  {
+    byte column = serial_getch() - 48; // column: 1,2,3,.. 16
+    byte row = serial_getch() - 48; // row: 1 or 2
+    byte data = serial_getch() - 97; // level: 1 - 8
+    drawLevel(column, row, data);
+  }
+  else if (rxbyte == 'i')
+  {
+    byte column = serial_getch() - 48; // column: 1 a 16
+    byte row = serial_getch() - 48; // row: 1 or 2
+    dmd.drawChar( column, row * 8, serial_getch(), GRAPHICS_NORMAL); //draw a empy space
+  }
+  else if (rxbyte == 'k')
+  {
+    dmd.clearScreen( true ); //clear all
+  }
+}
+void drawLevel(byte column, byte row, byte data) {
+  if (row == 1) {
+    for (int i = 0; i <= data; i++) {
+      dmd.drawLine(column * 6, i, column * 6 + 4, i, GRAPHICS_NORMAL);
+    }
+    for (int i = 0; i <= data; i++) {
+      dmd.drawLine(column * 6, i + data, column * 6 + 4, i + data, GRAPHICS_INVERSE);
+    }
+  }
+  else {
+    for (int i = 7; i <= data + 7; i++) {
+      dmd.drawLine(column * 6, i, column * 6 + 4, i, GRAPHICS_NORMAL);
+    }
+    for (int i = 8; i <= data + 8; i++) {
+      dmd.drawLine(column * 6, i + data, column * 6 + 4, i + data, GRAPHICS_INVERSE);
+    }
+  }
+}
