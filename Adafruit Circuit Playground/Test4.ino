@@ -209,3 +209,4 @@ void color(float Step) {
     (state < 3 ? state++ : state = 1);
   }
 }
+
