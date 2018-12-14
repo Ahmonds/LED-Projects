@@ -2,24 +2,27 @@
 #include <SPI.h>
 #define numPatterns 3
 
-byte MyBrightness = 40;
-float StepSize;
-#define MyR 15
-#define MyG 15
-#define MyB 15
+#define MyBrightness 40
+#define CWoffset 0
+#define CCWoffset 0
+#define MyR 10
+#define MyG 10
+#define MyB 10
 
+float StepSize;
 float StepHold;
 #define numLED 120
+#define IDLED (numLED - 1)
 #define ButtonB 4
-byte ColorMode = 0, i = 0, state = 1;
+byte ColorMode = 0, i = 0, state2 = 1, state1 = 1;
 float R = 0, G = 0, B = 0;
+float r = 0, g = 0, b = 0;
+uint32_t MyColor;
 uint32_t PastMillis;
 
-#define dbDelay 100
-//bool Switch = true;
+#define dbDelay 110
 bool ButtonState = false;
 uint32_t PrevBounceMillis;
-uint32_t MyColor;
 
 #define DATAPIN A6
 #define CLOCKPIN A7
@@ -27,7 +30,7 @@ Adafruit_DotStar strip = Adafruit_DotStar(
                            numLED, DATAPIN, CLOCKPIN, DOTSTAR_BRG);
 
 void setup() {
-  StepSize = MyBrightness*.001;
+  StepSize = MyBrightness*0.02;
   strip.begin();
   strip.show();
   strip.setBrightness(255);
@@ -44,94 +47,73 @@ void loop() {
     Debounce();
     switch (ColorMode) {
       case 1:
-        RunningBlend();
+        ConstBlend();
         break;
       case 2:
         RunningBlendRainbow();
         break;
       case 3:
-        RunningLight();
+        CounterRunningLights();
         break;
       default:
         ConstLight();
         break;
     }
   }
-  strip.show();
-  color(StepSize);
 }
 
-void RunningBlend() {
-    strip.setPixelColor(i, R, G, B);
-    i++;
-}
-
-void RunningBlendRainbow() {
-  color(StepSize);
+void ConstBlend() {
+  if (i == IDLED) strip.show(), FirstColor(StepSize);
   strip.setPixelColor(i, R, G, B);
   i++;
 }
 
-void RunningLight () {
-  color(StepSize);
-  Run1();
-  Run2();
-  strip.show();
+void RunningBlendRainbow() {
+  FirstColor(StepSize);
+  strip.setPixelColor(i, R, G, B);
+  if (i == IDLED) strip.show();
   i++;
 }
 
-void Run1 () {
-  byte i1, iPast1, iMid1;
-  (i <= 0 ? i1 = i + 0 : i1 = i - 0);
-  if (i == 0) iPast1 = numLED - 1, iMid1 = numLED;
-  else if (i == 1) iPast1 = numLED, iMid1 = 0;
-  else iPast1 = i1 - 2, iMid1 = i1 - 1;
+void CounterRunningLights() {
+  //  if (millis() - PastMillis > 80) {
+  //    PastMillis = millis();
+  byte CWa, CWb, CCWa, CCWb, CWi;
 
-  byte i2, iPast2, iMid2;
-  (i <= 30 ? i2 = i + 90 : i2 = i - 30);
-  if (i == 0) iPast2 = numLED - 1, iMid2 = numLED;
-  else if (i == 1) iPast1 = numLED, iMid1 = 0;
-  else iPast1 = i2 - 2, iMid1 = i2 - 1;
+  CWi = IDLED - i;
+  if (CWi < CWoffset) {
+    CWa = CWi + (IDLED - CWoffset + 1);
+  }
+  else CWa = CWi - CWoffset;
+  (CWa == IDLED ? CWb = 0 : CWb = CWa + 1);
+  FirstColor(StepSize);
+  strip.setPixelColor(CWa, R, G, B);
+  strip.setPixelColor(CWb, 0, 0, 0);
 
-  strip.setPixelColor(i1, R, G, B);
-  strip.setPixelColor(i2, R, G, B);
-  byte r = R / 3, g = G / 3, b = B / 3;
-  strip.setPixelColor(iMid1, r, g, b);
-  strip.setPixelColor(iMid2, r, g, b);
+  if (i > IDLED - CCWoffset) {
+    CCWa = i - (IDLED - CCWoffset + 1);
+  }
+  else CCWa = i + CCWoffset;
+  (CCWa == 0 ? CCWb = IDLED : CCWb = CCWa - 1);
+  SecondColor(StepSize);
+  strip.setPixelColor(CCWa, r, g, b);
+  strip.setPixelColor(CCWb, 0, 0, 0);
 
-  strip.setPixelColor(iPast1, 0, 0, 0);
-  strip.setPixelColor(iPast2, 0, 0, 0);
-
-}
-
-void Run2() {
-  byte i3, iPast3, iMid3;
-  (i <= 60 ? i3 = i3 + 60 : i3 = i - 60);
-  if (i == 0) iPast3 = numLED - 1, iMid3 = numLED;
-  else if (i == 1) iPast3 = numLED, iMid3 = 0;
-  else iPast3 = i3 - 2, iMid3 = i3 - 1;
-
-  byte i4, iPast4, iMid4;
-  (i <= 90 ? i4 = i4 + 90 : i4 = i - 90);
-  if (i == 0) iPast4 = numLED - 1, iMid4 = numLED;
-  else if (i == 1) iPast3 = numLED, iMid3 = 0;
-  else iPast3 = i4 - 2, iMid3 = i4 - 1;
-
-  strip.setPixelColor(i3, R, G, B);
-  strip.setPixelColor(i4, R, G, B);
-  byte r = R / 3, g = G / 3, b = B / 3;
-  strip.setPixelColor(iMid3, r, g, b);
-  strip.setPixelColor(iMid4, r, g, b);
-
-  strip.setPixelColor(iPast3, 0, 0, 0);
-  strip.setPixelColor(iPast4, 0, 0, 0);
-
+  if (CCWa == CWb) {
+    strip.setPixelColor(CCWa, r, g, b);
+  }
+  if (CWa == CCWb) {
+    strip.setPixelColor(CWa, R, G, B);
+  }
+  i++;
+  //  }
+  strip.show();
 }
 
 void ConstLight() {
   strip.setPixelColor(i, MyColor);
-  i++;
   strip.show();
+  i++;
 }
 
 void Debounce() {
@@ -150,24 +132,44 @@ void Debounce() {
   }
 }
 
-void color(float Step) {
-  if (state == 1) {
-    (R < MyBrightness - StepHold ? R += Step : R = MyBrightness);
-    (B > StepHold ? B -= Step : B = 0);
+void FirstColor(float Step1) {
+  if (state1 == 1) {
+    (R < MyBrightness - StepHold ? R += Step1 : R = MyBrightness);
+    (B > StepHold ? B -= Step1 : B = 0);
   }
-  else if (state == 2) {
-    (G < MyBrightness - StepHold ? G += Step : G = MyBrightness);
-    (R > StepHold ? R -= Step : R = 0);
+  else if (state1 == 2) {
+    (G < MyBrightness - StepHold ? G += Step1 : G = MyBrightness);
+    (R > StepHold ? R -= Step1 : R = 0);
   }
-  else if (state == 3) {
-    (B < MyBrightness - StepHold ? B += Step : B = MyBrightness);
-    (G > StepHold ? G -= Step : G = 0);
+  else if (state1 == 3) {
+    (B < MyBrightness - StepHold ? B += Step1 : B = MyBrightness);
+    (G > StepHold ? G -= Step1 : G = 0);
   }
-  else state = 1;
 
   if ((R == MyBrightness && B == 0) ||
       (G == MyBrightness && R == 0) ||
       (B == MyBrightness && G == 0)) {
-    (state < 3 ? state++ : state = 1);
+    (state1 < 3 ? state1++ : state1 = 1);
+  }
+}
+
+void SecondColor(float Step2) {
+  if (state2 == 1) {
+    (r < MyBrightness - StepHold ? r += Step2 : r = MyBrightness);
+    (b > StepHold ? b -= Step2 : b = 0);
+  }
+  else if (state2 == 2) {
+    (g < MyBrightness - StepHold ? g += Step2 : g = MyBrightness);
+    (r > StepHold ? r -= Step2 : r = 0);
+  }
+  else if (state2 == 3) {
+    (b < MyBrightness - StepHold ? b += Step2 : b = MyBrightness);
+    (g > StepHold ? g -= Step2 : g = 0);
+  }
+
+  if ((r == MyBrightness && b == 0) ||
+      (g == MyBrightness && r == 0) ||
+      (b == MyBrightness && g == 0)) {
+    (state2 < 3 ? state2++ : state2 = 1);
   }
 }
