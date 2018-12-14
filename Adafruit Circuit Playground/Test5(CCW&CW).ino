@@ -1,167 +1,103 @@
 #include <Adafruit_CircuitPlayground.h>
-#define numPatterns 1
 
-byte MyBrightness = 30;
-float StepSize = 0.4;
-#define MyR 5
-#define MyG 5
-#define MyB 5
+#define MyBrightness 30
 
+float StepSize = MyBrightness*0.01;
+float StepHold;
+#define numLED 10
+#define IDLED (numLED - 1)
 #define CWoffset 0
 #define CCWoffset 0
-float StepHold;
-#define LEDs 10
-#define numLED (LEDs - 1)
-#define ButtonA 4
-#define ButtonB 5
-byte ColorMode = 0, i = 0, CCWstate = 1, CWstate = 2;
-float R = 0, G = 0, B = 0;
+byte  i = 0, state1 = 1, state2 = 1;
+float R = MyBrightness/2, G = 0, B = 0;
 float r = 0, g = 0, b = 0;
 uint32_t PastMillis;
-uint32_t MyColor;
 
-#define dbDelay 100
-//bool Switch = true;
-bool ButtonState = false;
-uint32_t PrevBounceMillis;
-
-/*
-  byte r[] = {  0,  25,  50,  76, 101, 126, 151, 177, 202, 227, 255,
-            255, 227, 202, 177, 151, 126, 101,  76,  50,  25,   0,
-              0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0};
-
-  byte g[] = {  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-              0,  25,  50,  76, 101, 126, 151, 177, 202, 227, 255,
-            255, 227, 202, 177, 151, 126, 101,  76,  50,  25,   0};
-
-  byte b[] = {255, 227, 202, 177, 151, 126, 101,  76,  50,  25,   0,
-              0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-              0,  25,  50,  76, 101, 126, 151, 177, 202, 227, 255};
-*/
 void setup() {
-  MyColor = CircuitPlayground.strip.Color(MyR, MyG, MyB);
   CircuitPlayground.begin();
   (StepSize >= 1 ? StepHold = StepSize - 1 : StepHold = 0);
   PastMillis = millis();
-  PrevBounceMillis = millis();
-  pinMode(ButtonA, INPUT);
-  digitalWrite(ButtonA, LOW);
-  pinMode(ButtonB, INPUT);
-  digitalWrite(ButtonB, LOW);
 }
 
 void loop() {
-  for (i = 0; i < LEDs;) {
-    Debounce();
-    switch (ColorMode) {
-      case 1:
-        CounterRunningLights();
-        break;
-      default:
-        ConstLight();
-        break;
-    }
+  for (i = 0; i < numLED;) {
+    CounterRunningLights();
   }
 }
 
 void CounterRunningLights() {
-  if (millis() - PastMillis > 200) {
+  if (millis() - PastMillis > 90) {
     PastMillis = millis();
     byte CWa, CWb, CCWa, CCWb, CWi;
 
-//============================================================
-    CWi = numLED - i;
+    CWi = IDLED - i;
     if (CWi < CWoffset) {
-      CWa = numLED + CWoffset - CWi;
+      CWa = CWi + (IDLED - CWoffset + 1);
     }
-    else CWa = CWi + CWoffset;
-    (CWa == numLED ? CWb = 0 : CWb = CWa + 1);
-    CWcolor(StepSize);
+    else CWa = CWi - CWoffset;
+    (CWa == IDLED ? CWb = 0 : CWb = CWa + 1);
+    FirstColor(StepSize);
     CircuitPlayground.strip.setPixelColor(CWa, R, G, B);
     CircuitPlayground.strip.setPixelColor(CWb, 0, 0, 0);
 
-//============================================================
-    if (i < CCWoffset) {
-      CCWa = numLED - CCWoffset + i;
+    if (i > IDLED - CCWoffset) {
+      CCWa = i - (IDLED - CCWoffset + 1);
     }
-    else CCWa = i - CCWoffset;
-    (CCWa == 0 ? CCWb = numLED - 1 : CCWb = CCWa - 1);
-    CCWcolor(StepSize);
+    else CCWa = i + CCWoffset;
+    (CCWa == 0 ? CCWb = IDLED : CCWb = CCWa - 1);
+    SecondColor(StepSize);
     CircuitPlayground.strip.setPixelColor(CCWa, r, g, b);
     CircuitPlayground.strip.setPixelColor(CCWb, 0, 0, 0);
 
-//============================================================
-    if (CCWa == CWa) {
-      CircuitPlayground.strip.setPixelColor(CCWa, MyBrightness/3,
-        MyBrightness/3, MyBrightness/3);
+    if (CCWa == CWb) {
+      CircuitPlayground.strip.setPixelColor(CCWa, r, g, b);
     }
-    CircuitPlayground.strip.show();
+    if (CWa == CCWb) {
+      CircuitPlayground.strip.setPixelColor(CWa, R, G, B);
+    }
     i++;
   }
-}
-
-void ConstLight() {
-  CircuitPlayground.strip.setPixelColor(i, MyColor);
   CircuitPlayground.strip.show();
-  i++;
 }
 
-void Debounce() {
-  if (!ButtonState) {
-    if (digitalRead(ButtonA) == ButtonState) PrevBounceMillis = millis();
-    if (millis() - PrevBounceMillis > dbDelay) ButtonState = true;
+void FirstColor(float Step1) {
+  if (state1 == 1) {
+    (R < MyBrightness - StepHold ? R += Step1 : R = MyBrightness);
+    (B > StepHold ? B -= Step1 : B = 0);
   }
-
-  if (ButtonState) {
-    if (digitalRead(ButtonA) == ButtonState) PrevBounceMillis = millis();
-    if (millis() - PrevBounceMillis > dbDelay) {
-      ButtonState = false;
-      (ColorMode < numPatterns ? ColorMode++ : ColorMode = 0);
-    }
+  else if (state1 == 2) {
+    (G < MyBrightness - StepHold ? G += Step1 : G = MyBrightness);
+    (R > StepHold ? R -= Step1 : R = 0);
   }
-}
-
-void CWcolor(float Step) {
-  if (CWstate == 1) {
-    (R < MyBrightness - StepHold ? R += Step : R = MyBrightness);
-    (B > StepHold ? B -= Step : B = 0);
+  else if (state1 == 3) {
+    (B < MyBrightness - StepHold ? B += Step1 : B = MyBrightness);
+    (G > StepHold ? G -= Step1 : G = 0);
   }
-  else if (CWstate == 2) {
-    (G < MyBrightness - StepHold ? G += Step : G = MyBrightness);
-    (R > StepHold ? R -= Step : R = 0);
-  }
-  else if (CWstate == 3) {
-    (B < MyBrightness - StepHold ? B += Step : B = MyBrightness);
-    (G > StepHold ? G -= Step : G = 0);
-  }
-  else CWstate = 1;
 
   if ((R == MyBrightness && B == 0) ||
       (G == MyBrightness && R == 0) ||
       (B == MyBrightness && G == 0)) {
-    (CWstate < 3 ? CWstate++ : CWstate = 1);
+    (state1 < 3 ? state1++ : state1 = 1);
   }
 }
 
-void CCWcolor(float Step) {
-  if (CCWstate == 1) {
-    (r < MyBrightness - StepHold ? r += Step : r = MyBrightness);
-    (b > StepHold ? b -= Step : b = 0);
+void SecondColor(float Step2) {
+  if (state2 == 1) {
+    (r < MyBrightness - StepHold ? r += Step2 : r = MyBrightness);
+    (b > StepHold ? b -= Step2 : b = 0);
   }
-  else if (CCWstate == 2) {
-    (g < MyBrightness - StepHold ? g += Step : g = MyBrightness);
-    (r > StepHold ? r -= Step : r = 0);
+  else if (state2 == 2) {
+    (g < MyBrightness - StepHold ? g += Step2 : g = MyBrightness);
+    (r > StepHold ? r -= Step2 : r = 0);
   }
-  else if (CCWstate == 3) {
-    (b < MyBrightness - StepHold ? b += Step : b = MyBrightness);
-    (g > StepHold ? g -= Step : g = 0);
+  else if (state2 == 3) {
+    (b < MyBrightness - StepHold ? b += Step2 : b = MyBrightness);
+    (g > StepHold ? g -= Step2 : g = 0);
   }
-  else CCWstate = 1;
 
   if ((r == MyBrightness && b == 0) ||
       (g == MyBrightness && r == 0) ||
       (b == MyBrightness && g == 0)) {
-    (CCWstate < 3 ? CCWstate++ : CCWstate = 1);
+    (state2 < 3 ? state2++ : state2 = 1);
   }
 }
-
