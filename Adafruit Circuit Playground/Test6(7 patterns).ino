@@ -12,15 +12,13 @@ float StepHold;
 #define IDLED (numLED - 1)
 #define CWoffset 0
 #define CCWoffset 0
-#define ButtonA 4
-#define ButtonB 5
 byte ColorMode = 0, i = 0, state1 = 1, state2 = 1;
 float R = 0, G = 0, B = 0;
 float r = 0, g = 0, b = 0;
 uint32_t PastMillis;
 uint32_t MyColor;
 
-#define dbDelay 150
+#define dbDelay 20
 bool ButtonState = false;
 uint32_t PrevBounceMillis;
 
@@ -47,10 +45,6 @@ void setup() {
   (StepSize >= 1 ? StepHold = StepSize - 1 : StepHold = 0);
   PastMillis = millis();
   PrevBounceMillis = millis();
-  pinMode(ButtonA, INPUT);
-  digitalWrite(ButtonA, LOW);
-  pinMode(ButtonB, INPUT);
-  digitalWrite(ButtonB, LOW);
 }
 
 void loop() {
@@ -64,16 +58,16 @@ void loop() {
         RunningBlendRainbow();
         break;
       case 3:
-        RunningLight();
+        ColorSwirl();
         break;
       case 4:
-        ConstBlend();
-        break;
-      case 5:
         RunningColors();
         break;
+      case 5:
+        RunningLight();
+        break;
       case 6:
-        ColorSwirl();
+        ConstBlend();
         break;
       case 7:
         CounterRunningLights();
@@ -88,7 +82,7 @@ void loop() {
 void RunningBlend() {
   if (millis() - PastMillis > 90) {
     PastMillis = millis();
-    FirstColor(StepSize);
+    FirstColor(StepSize*2);
     CircuitPlayground.strip.setPixelColor(i, R, G, B);
     CircuitPlayground.strip.show();
     i++;
@@ -101,6 +95,36 @@ void RunningBlendRainbow() {
     float RainbowStep = (MyBrightness*2.5)/numLED;
     FirstColor(RainbowStep);
     CircuitPlayground.strip.setPixelColor(i, R, G, B);
+    CircuitPlayground.strip.show();
+    i++;
+  }
+}
+
+void ColorSwirl() {
+  float rcStepSize = StepSize/150;
+  FirstColor(rcStepSize);
+  if (millis() - PastMillis > 30) {
+    PastMillis = millis();
+    CircuitPlayground.strip.setPixelColor(i, R, G, B);
+    CircuitPlayground.strip.show();
+    i++;
+  }
+}
+
+void RunningColors() {
+  FirstColor(StepSize);
+  SecondColor(StepSize);
+  if (millis() - PastMillis > 90) {
+    PastMillis = millis();
+    byte iPast, iMid, iLast;
+    if (i == 0) iLast = IDLED - 2, iPast = IDLED - 1, iMid = IDLED;
+    else if (i == 1) iLast = IDLED - 1, iPast = IDLED, iMid = 0;
+    else if (i == 2) iLast = IDLED, iPast = 0, iMid = 1;
+    else iLast = i - 3, iPast = i - 2, iMid = i - 1;
+    CircuitPlayground.strip.setPixelColor(i, (R+r)/2, g, B);
+    CircuitPlayground.strip.setPixelColor(iMid, R, (G+g)/2, b);
+    CircuitPlayground.strip.setPixelColor(iPast, r, G, (B+b)/2);
+    CircuitPlayground.strip.setPixelColor(iLast, 0, 0, 0);
     CircuitPlayground.strip.show();
     i++;
   }
@@ -131,36 +155,6 @@ void ConstBlend() {
     PastMillis = millis();
     float cbStepSize = StepSize/3;
     if (i == 0) FirstColor(cbStepSize);
-    CircuitPlayground.strip.setPixelColor(i, R, G, B);
-    CircuitPlayground.strip.show();
-    i++;
-  }
-}
-
-void RunningColors() {
-  FirstColor(StepSize);
-  SecondColor(StepSize);
-  if (millis() - PastMillis > 90) {
-    PastMillis = millis();
-    byte iPast, iMid, iLast;
-    if (i == 0) iLast = IDLED - 2, iPast = IDLED - 1, iMid = IDLED;
-    else if (i == 1) iLast = IDLED - 1, iPast = IDLED, iMid = 0;
-    else if (i == 2) iLast = IDLED, iPast = 0, iMid = 1;
-    else iLast = i - 3, iPast = i - 2, iMid = i - 1;
-    CircuitPlayground.strip.setPixelColor(i, (R+r)/2, g, B);
-    CircuitPlayground.strip.setPixelColor(iMid, R, (G+g)/2, b);
-    CircuitPlayground.strip.setPixelColor(iPast, r, G, (B+b)/2);
-    CircuitPlayground.strip.setPixelColor(iLast, 0, 0, 0);
-    CircuitPlayground.strip.show();
-    i++;
-  }
-}
-
-void ColorSwirl() {
-  float rcStepSize = StepSize/150;
-  FirstColor(rcStepSize);
-  if (millis() - PastMillis > 30) {
-    PastMillis = millis();
     CircuitPlayground.strip.setPixelColor(i, R, G, B);
     CircuitPlayground.strip.show();
     i++;
@@ -210,12 +204,12 @@ void ConstLight() {
 
 void Debounce() {
   if (!ButtonState) {
-    if (digitalRead(ButtonA) == ButtonState) PrevBounceMillis = millis();
+    if (CircuitPlayground.rightButton() == ButtonState) PrevBounceMillis = millis();
     if (millis() - PrevBounceMillis > dbDelay) ButtonState = true;
   }
 
   if (ButtonState) {
-    if (digitalRead(ButtonA) == ButtonState) PrevBounceMillis = millis();
+    if (CircuitPlayground.rightButton() == ButtonState) PrevBounceMillis = millis();
     if (millis() - PrevBounceMillis > dbDelay) {
       ButtonState = false;
       (ColorMode < numPatterns ? ColorMode++ : ColorMode = 0);
