@@ -68,16 +68,19 @@ void CounterRunningLights() {
   if (millis() - PastMillis > 200) {
     PastMillis = millis();
     byte CWa, CWb, CCWa, CCWb, CWi;
+
+//============================================================
     CWi = numLED - i;
     if (CWi < CWoffset) {
       CWa = numLED + CWoffset - CWi;
     }
     else CWa = CWi + CWoffset;
-    (CWa == 0 ? CWb = numLED + 1 : CWb = CWa + 1);
+    (CWa == numLED ? CWb = 0 : CWb = CWa + 1);
     CWcolor(StepSize);
     CircuitPlayground.strip.setPixelColor(CWa, R, G, B);
     CircuitPlayground.strip.setPixelColor(CWb, 0, 0, 0);
 
+//============================================================
     if (i < CCWoffset) {
       CCWa = numLED - CCWoffset + i;
     }
@@ -87,6 +90,7 @@ void CounterRunningLights() {
     CircuitPlayground.strip.setPixelColor(CCWa, r, g, b);
     CircuitPlayground.strip.setPixelColor(CCWb, 0, 0, 0);
 
+//============================================================
     if (CCWa == CWa) {
       CircuitPlayground.strip.setPixelColor(CCWa, MyBrightness/3,
         MyBrightness/3, MyBrightness/3);
@@ -160,3 +164,4 @@ void CCWcolor(float Step) {
     (CCWstate < 3 ? CCWstate++ : CCWstate = 1);
   }
 }
+
