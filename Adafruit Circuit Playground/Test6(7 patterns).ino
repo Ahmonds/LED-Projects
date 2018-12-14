@@ -1,7 +1,7 @@
 #include <Adafruit_CircuitPlayground.h>
 #define numPatterns 7
 
-byte MyBrightness = 50;
+byte MyBrightness = 30;
 float StepSize;
 #define MyR 5
 #define MyG 5
@@ -20,7 +20,7 @@ float r = 0, g = 0, b = 0;
 uint32_t PastMillis;
 uint32_t MyColor;
 
-#define dbDelay 100
+#define dbDelay 150
 bool ButtonState = false;
 uint32_t PrevBounceMillis;
 
@@ -96,7 +96,7 @@ void RunningBlend() {
 }
 
 void RunningBlendRainbow() {
-  if (millis() - PastMillis > 120) {
+  if (millis() - PastMillis > 110) {
     PastMillis = millis();
     float RainbowStep = (MyBrightness*2.5)/numLED;
     FirstColor(RainbowStep);
@@ -168,7 +168,7 @@ void ColorSwirl() {
 }
 
 void CounterRunningLights() {
-  if (millis() - PastMillis > 90) {
+  if (millis() - PastMillis > 80) {
     PastMillis = millis();
     byte CWa, CWb, CCWa, CCWb, CWi;
 
