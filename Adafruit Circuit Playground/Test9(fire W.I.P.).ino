@@ -1,41 +1,67 @@
 #include <Adafruit_CircuitPlayground.h>
+#define MyBrightness 128
 
-#define MyBrightness 30
-
-float StepSize;
-float StepHold;
 #define numLED 10
 #define IDLED (numLED - 1)
-byte ColorMode = 0, state2 = 1, state1 = 1;
-float R = 0, G = 0, B = 0;
-float r = 0, g = 0, b = 0;
-float FR1 = 0, FG1 = 0, FB1 = 0;
 uint32_t PastMillis;
-byte i, ii;
 
 void setup() {
-  StepSize = MyBrightness * 0.01;
   CircuitPlayground.begin();
-  (StepSize >= 1 ? StepHold = StepSize - 1 : StepHold = 0);
   PastMillis = millis();
 }
 
 void loop() {
-  for (i = 0; i < numLED;) {
-    Fire();
+    Fire(70, 200, 20);
+}
+
+void Fire(byte Cooling, byte Sparking, byte SpeedDelay) {
+  if (millis() - PastMillis > random(SpeedDelay - 10, SpeedDelay)) {
+    static byte heat[numLED];
+    int cooldown;
+
+    // Step 1.  Cool down every cell a little
+    for (byte i = 0; i < numLED; i++) {
+      cooldown = random(((Cooling * 10) / numLED) + 2);
+
+      if (cooldown > heat[i]) {
+        heat[i] = 0;
+      } else {
+        heat[i] -= cooldown;
+      }
+    }
+
+    // Step 2.  Heat from each cell drifts 'up' and diffuses a little
+    for (byte k = numLED - 1; k >= 2; k--) {
+      heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
+    }
+
+    // Step 3.  Randomly ignite new 'sparks' near the bottom
+    if (random(255) < Sparking ) {
+      byte y = random(7);
+      heat[y] += random(160, 255);
+    }
+
+    // Step 4.  Convert heat to LED colors
+    for (byte j = 0; j < numLED; j++) setPixelHeatColor(j, heat[j]);
+
+    CircuitPlayground.strip.show();
   }
 }
 
-void Fire() {
-  if (millis() - PastMillis > random(5, 55)) {
-    PastMillis = millis();
-    ii = IDLED - 1;
-    float ColorScalar = (i/(numLED/4));
-    float ColorScalar2 = (i/(numLED/3));
-    FR1 = random(MyBrightness / 3+ColorScalar, MyBrightness / 2+ColorScalar);
-    FG1 = random(MyBrightness / 4+ColorScalar2, MyBrightness / 3+ColorScalar2);
-    CircuitPlayground.strip.setPixelColor(i, FR1, FG1, FB1);
-    CircuitPlayground.strip.show();
-    i++;
+void setPixelHeatColor (byte Pixel, byte temperature) {
+  // Scale 'heat' down from 0-255 to 0-191
+  byte t192 = (temperature / 255) * 127;
+
+  // calculate ramp up from
+  byte heatramp = t192 & 0x32; // 0..50
+  heatramp <<= 2; // scale up to 0..200
+
+  // figure out which third of the spectrum we're in:
+  if ( t192 > MyBrightness / 3) {                    // hottest
+    CircuitPlayground.strip.setPixelColor(Pixel, 255, 200, heatramp);
+  } else if ( t192 > MyBrightness*2 / 3) {            // middle
+    CircuitPlayground.strip.setPixelColor(Pixel, 200, heatramp, 0);
+  } else {                               // coolest
+    CircuitPlayground.strip.setPixelColor(Pixel, heatramp, 0, 0);
   }
 }
