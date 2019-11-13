@@ -62,35 +62,35 @@ void loop() {
 //    ChangeBrightness();
     switch (ColorMode) {
       case 1:
-        RunningBlend();
+        RunningBlend(); // 1
         break;
       case 2:
-        RunningBlendRainbow();
+        RunningBlendRainbow();  // 2
         break;
       case 3:
-        ColorSwirl();
+        ColorSwirl(); // 3
         break;
       case 4:
-        RunningColors();
+        RunningColors();  // 4
         break;
       case 5:
-        RunningLight();
+        RunningLight(); // 5
         break;
       case 6:
-        ConstBlend();
+        ConstBlend(); // 6
         break;
       case 7:
-        CounterRunningLights();
+        CounterRunningLights(); // 7
         break;
       case 8:
-        MeteorRain(4, 64, true);
+        MeteorRain(4, 64, true);  // 8
         //Flame();
         break;
       default:
-        ConstLight();
+        ConstLight(); // 0
         break;
     }
-    if (ColorMode <= numPatterns) CircuitPlayground.setPixelColor(ColorMode, R, G, B);
+    if ((ColorMode <= numPatterns) && (ColorMode > 0)) CircuitPlayground.setPixelColor(ColorMode-1, R, G, B);
     else CircuitPlayground.clearPixels();
   }
 }
@@ -108,10 +108,10 @@ void RunningBlend() { /* 1 */
 }
 
 void RunningBlendRainbow() { /* 2 */
-  if (millis() - PastMillis > 110) {
+  if (millis() - PastMillis > 60) {
     PastMillis = millis();
 
-    float RainbowStep = MyBrightness/numLED;
+    float RainbowStep = MyBrightness* numLED;
     FirstColor(RainbowStep);
     StripStar.setPixelColor(iMain, R, G, B);
     
@@ -124,7 +124,7 @@ void ColorSwirl() { /* 3 */
   if (millis() - PastMillis > 30) {
     PastMillis = millis();
     
-    float rcStepSize = StepSize/100;
+    float rcStepSize = StepSize/10;
     FirstColor(rcStepSize);
   
     StripStar.setPixelColor(iMain, R, G, B);
@@ -134,18 +134,25 @@ void ColorSwirl() { /* 3 */
 }
 
 void RunningColors() { /* 4 */
-  if (millis() - PastMillis > 70) {
+  if (millis() - PastMillis > 60) {
     PastMillis = millis();
-    FirstColor(StepSize);
-    SecondColor(StepSize);
     
     byte iPast, iMid, iLast;
     if (iMain == 0) iLast = IDLED - 2, iPast = IDLED - 1, iMid = IDLED;
     else if (iMain == 1) iLast = IDLED - 1, iPast = IDLED, iMid = 0;
     else if (iMain == 2) iLast = IDLED, iPast = 0, iMid = 1;
     else iLast = iMain- 3, iPast = iMain- 2, iMid = iMain- 1;
+
+    FirstColor(StepSize);
+    SecondColor(StepSize);
     StripStar.setPixelColor(iMain, (R+r)/2, g, B);
+    
+    FirstColor(StepSize);
+    SecondColor(StepSize);
     StripStar.setPixelColor(iMid, R, (G+g)/2, b);
+    
+    FirstColor(StepSize);
+    SecondColor(StepSize);
     StripStar.setPixelColor(iPast, r, G, (B+b)/2);
     StripStar.setPixelColor(iLast, 0, 0, 0);
     
@@ -155,7 +162,7 @@ void RunningColors() { /* 4 */
 }
 
 void RunningLight () { /* 5 */
-  if (millis() - PastMillis > 70) {
+  if (millis() - PastMillis > 50) {
     PastMillis = millis();
     
     byte iPast, iMid;
@@ -174,7 +181,7 @@ void RunningLight () { /* 5 */
 }
 
 void ConstBlend() { /* 6 */
-  if (millis() - PastMillis > 5) {
+  if (millis() - PastMillis > 1) {
     PastMillis = millis();
     
     float cbStepSize = StepSize/2;
@@ -227,7 +234,7 @@ void CounterRunningLights() { /* 7 */
 
 void MeteorRain(byte meteorSize, byte meteorTrailDecay, bool meteorRandomDecay) { /* 8 */
   for (byte i = 0; i < numLED + (meteorTrailDecay/meteorSize);) {
-    if (millis() - PastMillis > random(50, 60)) {
+    if (millis() - PastMillis > random(50, 90)) {
       PastMillis = millis();
       for (byte j = 0; j < numLED; j++) {
         if ( (!meteorRandomDecay) || (random(11) > 8) ) {
